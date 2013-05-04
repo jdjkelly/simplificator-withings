@@ -1,27 +1,27 @@
 class Withings::User
-  attr_reader :short_name, :user_id, :birthdate, :fat_method, :first_name, :last_name, :gender, :oauth_token, :oauth_token_secret
+  attr_reader :short_name, :userid, :birthdate, :fat_method, :first_name, :last_name, :gender, :oauth_token, :oauth_token_secret
 
-  def self.authenticate(user_id, oauth_token, oauth_token_secret)
+  def self.authenticate(userid, oauth_token, oauth_token_secret)
     response = Withings::Connection.get_request('/user', oauth_token, oauth_token_secret, :action => :getbyuserid, :userid => user_id)
     user_data = response['users'].detect { |item| item['id'] == user_id.to_i }
     raise Withings::ApiError.new(2555, 'No user found', '') unless user_data
     Withings::User.new(user_data.merge({:oauth_token => oauth_token, :oauth_token_secret => oauth_token_secret}))
   end
-  
+
   # If you create a user yourself, then the only attributes of interest (required for calls to the API) are 'user_id' and 'oauth_token' and 'oauth_token_secret'
   def initialize(params)
     params = params.stringify_keys
     @short_name = params['shortname']
     @first_name = params['firstname']
     @last_name = params['lastname']
-    @user_id = params['id']                         || params['user_id']
+    @userid = params['id'] || params['userid']
     @birthdate = Time.at(params['birthdate']) if params['birthdate']
     @gender = params['gender'] == 0 ? :male : params['gender'] == 1 ? :female : nil
     @fat_method = params['fatmethod']
     @oauth_token = params['oauth_token']
     @oauth_token_secret = params['oauth_token_secret']
   end
-  
+
   def subscribe_notification(callback_url, description, device = Withings::SCALE)
     connection.get_request('/notify', :action => :subscribe, :callbackurl => callback_url, :comment => description, :appli => device)
   end
@@ -74,12 +74,12 @@ class Withings::User
   end
 
   def to_s
-    "[User #{short_name} / #{:user_id}]"
+    "[User #{short_name} / #{:userid}]"
   end
-  
+
 
   protected
-  
+
   def devices_bitmask(*devices)
     devices = [Withings::SCALE, Withings::BLOOD_PRESSURE_MONITOR] if Array(devices).empty?
     devices.inject('|'.to_sym)
@@ -88,5 +88,5 @@ class Withings::User
   def connection
     @connection ||= Withings::Connection.new(self)
   end
-  
+
 end
